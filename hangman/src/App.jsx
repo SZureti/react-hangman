@@ -1,122 +1,99 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+import GuessInput from "./components/GuessInput";
+import PuzzleDisplay from "./components/PuzzleDisplay";
+import WrongLetters from "./components/WrongLetters";
+import "./index.css";
+import words from "./words.json";
 
 function App() {
-  const [count, setCount] = useState(0)
+  // Only 6 wrong guesses are allowed.
+  const MAX_WRONG = 6;
+
+  // Pick a random word and convert to uppercase so all comparisons are the same
+  function randomWord() {
+    const word = words[Math.floor(Math.random() * words.length)];
+    return word.toUpperCase();
+  }
+
+  // The State: two pieces --- Hard Rule in README --- puzzle and guessedLetters
+
+  const [puzzle, setPuzzle] = useState(randomWord);
+
+  const [guessedLetters, setGuessedLetters] = useState([]);
+
+  // make wrong letter equal to guessed letters that are not in the puzzle
+  const wrongLetters = guessedLetters.filter(
+    (letter) => !puzzle.includes(letter),
+  );
+
+  //You win when every letter of the puzzle has been guessed
+  const isWon = puzzle
+    .split("")
+    .every((letter) => guessedLetters.includes(letter));
+
+  // You lose when wrong guesses exceed the max 6 guess limit.
+  const isLost = wrongLetters.length > MAX_WRONG;
+
+  // The game end when the player wins or loses
+  const gameOver = isWon || isLost;
+
+  // Guesses: Runs when the player submits a letter from GuessInput
+  function handleGuess(raw) {
+    const letter = raw.trim().toUpperCase();
+
+    // Ignore anything that isn't a single letter
+    if (!/^[A-Z]$/.test(letter)) return;
+
+    // If the letter is already guessed add alert()
+    if (guessedLetters.includes(letter)) {
+      alert(`You already guessed "${letter}".`);
+      return;
+    }
+
+    const nextGuessed = [...guessedLetters, letter];
+    setGuessedLetters(nextGuessed);
+
+    const nextWrong = nextGuessed.filter((l) => !puzzle.includes(l));
+
+    const nextWon = puzzle.split("").every((l) => nextGuessed.includes(l));
+
+    if (nextWon) {
+      alert(`You win! The word was "${puzzle}".`);
+    } else if (nextWrong.length > MAX_WRONG) {
+      alert(`Game over! The word was "${puzzle}".`);
+    }
+  }
+
+  // Reset to a new round
+  function newGame() {
+    setPuzzle(randomWord());
+    setGuessedLetters([]);
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="app">
+      <header className="masthead">
+        <p className="eyebrow">
+          One Word. Six Mistakes Allowed. Give It Your Best Guess.
+        </p>
+        <h1>Outspell the Machine</h1>
+      </header>
+      <PuzzleDisplay puzzle={puzzle} guessedLetters={guessedLetters} />
 
-      <div className="ticks"></div>
+      <p className="status">
+        Wrong guesses: {wrongLetters.length}
+        {isWon && " · You win!"}
+        {isLost && " · The machine wins."}
+      </p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <GuessInput onGuess={handleGuess} disabled={gameOver} />
+      <WrongLetters wrongLetters={wrongLetters} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <button className="new-game" onClick={newGame}>
+        New word
+      </button>
+    </main>
+  );
 }
 
-export default App
+export default App;
